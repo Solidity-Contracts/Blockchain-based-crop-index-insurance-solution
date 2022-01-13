@@ -119,10 +119,8 @@ contract InsurancePolicy{
      return(insurance[policy_number].agreed_index_level);
      }
 
-    function payInsurancePremium(uint policy_number, address insurance_provider) public onlyFarmer payable{
+    function payInsurancePremium(bool farmerDecision, uint policy_number, address insurance_provider) public onlyFarmer payable{
        
-       bool farmerDecision;
-    
        require (farmerDecision == true, "Farmer does not agree with the terms & conditions stated in the policy");
        require(msg.value == insurance[policy_number].insurance_premium);
 
