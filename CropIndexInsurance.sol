@@ -233,3 +233,88 @@ contract RollPayout{
 
 
 }
+
+contract Reputation{
+    
+    Registration registrationContract;
+    mapping(address=>uint) InsuranceProviderRep;
+    address owner;
+    uint cr;
+    uint constant adjusting_factor = 4;
+
+    event ReputationUpdated(address insurance_provider, uint repScore);
+    
+    modifier onlyOwner{
+        require(msg.sender==owner,
+        "Sender not authorized."
+        );
+        _;
+    }  
+    
+    modifier onlyFarmer{
+        require(registrationContract.FarmerExists(msg.sender),
+        "Sender not authorized."
+        );
+        _;
+    }  
+    
+    struct farmer_type{
+        mapping(address=>bool) insurance_providers;
+        mapping(address=>bool) status;
+    }
+    
+    mapping(address=>farmer_type) FarmerFeedback;
+
+
+    constructor(address registrationAddress)public {
+        registrationContract=Registration(registrationAddress);
+        
+        owner=msg.sender;
+    }
+    
+    
+    function addInsurance_provider(address s) public onlyOwner{
+        require( InsuranceProviderRep[s]==0,
+        "Insurance provider already added");
+        
+         InsuranceProviderRep[s]=80;
+    }
+    
+    function feedback (address Insurance_provider, bool transactionSuccessful) public onlyFarmer {
+        require(!FarmerFeedback[msg.sender].insurance_providers[Insurance_provider],
+        "Farmer has already provided feedback for this Insurance_provider"
+        );
+        require(registrationContract.InsuranceProviderExists(Insurance_provider),
+        "Insurance_provider Address is incorrect"
+        );
+        FarmerFeedback[msg.sender].insurance_providers[Insurance_provider]=true;
+        FarmerFeedback[msg.sender].status[Insurance_provider]=transactionSuccessful;
+        
+    }
+    
+    function calculateRep (address Insurance_provider) external {
+        
+        if(FarmerFeedback[msg.sender].status[Insurance_provider]){
+            cr = ( InsuranceProviderRep[Insurance_provider]*95)/(4*adjusting_factor);
+            cr /= 100;
+             InsuranceProviderRep[Insurance_provider]+=cr;
+        }
+        else{
+
+            cr = ( InsuranceProviderRep[Insurance_provider]*95)/(4*(10-adjusting_factor));
+            cr /= 100;
+             InsuranceProviderRep[Insurance_provider]-=cr;
+        }
+        if ( InsuranceProviderRep[Insurance_provider]<0){
+             InsuranceProviderRep[Insurance_provider]=0;
+        }
+        else if ( InsuranceProviderRep[Insurance_provider]>100){
+             InsuranceProviderRep[Insurance_provider]=100;
+        }
+        
+        emit ReputationUpdated(Insurance_provider,  InsuranceProviderRep[Insurance_provider]);
+
+   }
+    
+
+}
